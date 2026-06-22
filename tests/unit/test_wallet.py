@@ -1,48 +1,27 @@
-import pytest
-
-from domain.wallet import InsufficientFundsError, Wallet
+from domain.wallet import Wallet
 
 
-def test_wallet_initial_balance() -> None:
-    wallet = Wallet(100.0)
-    assert wallet.balance == 100.0
-
-
-def test_wallet_default_balance() -> None:
+def test_wallet_key_generation() -> None:
     wallet = Wallet()
-    assert wallet.balance == 0.0
+
+    assert hasattr(wallet, "private_key")
+    assert hasattr(wallet, "public_key")
+    assert isinstance(wallet.private_key, str)
+    assert isinstance(wallet.public_key, str)
+
+    # SECP256k1 private key is 32 bytes (64 hex characters)
+    assert len(wallet.private_key) == 64
+    # SECP256k1 public key is 64 bytes (128 hex characters)
+    assert len(wallet.public_key) == 128
+
+    # Verify keys are hexadecimal strings
+    int(wallet.private_key, 16)
+    int(wallet.public_key, 16)
 
 
-def test_wallet_negative_initial_balance() -> None:
-    with pytest.raises(ValueError, match="Initial balance cannot be negative"):
-        Wallet(-10.0)
+def test_wallet_uniqueness() -> None:
+    wallet1 = Wallet()
+    wallet2 = Wallet()
 
-
-def test_wallet_deposit() -> None:
-    wallet = Wallet(50.0)
-    wallet.deposit(25.0)
-    assert wallet.balance == 75.0
-
-
-def test_wallet_deposit_invalid_amount() -> None:
-    wallet = Wallet(50.0)
-    with pytest.raises(ValueError, match="Deposit amount must be positive"):
-        wallet.deposit(-5.0)
-
-
-def test_wallet_withdraw() -> None:
-    wallet = Wallet(100.0)
-    wallet.withdraw(40.0)
-    assert wallet.balance == 60.0
-
-
-def test_wallet_withdraw_insufficient_funds() -> None:
-    wallet = Wallet(20.0)
-    with pytest.raises(InsufficientFundsError, match="Insufficient funds"):
-        wallet.withdraw(30.0)
-
-
-def test_wallet_withdraw_invalid_amount() -> None:
-    wallet = Wallet(50.0)
-    with pytest.raises(ValueError, match="Withdrawal amount must be positive"):
-        wallet.withdraw(-10.0)
+    assert wallet1.private_key != wallet2.private_key
+    assert wallet1.public_key != wallet2.public_key

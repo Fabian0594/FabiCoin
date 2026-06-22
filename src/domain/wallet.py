@@ -1,29 +1,16 @@
-class InsufficientFundsError(Exception):
-    """Exception raised when a wallet has insufficient funds for a withdrawal."""
-
-    pass
+import ecdsa
 
 
 class Wallet:
-    """A simple class representing a wallet with a balance."""
+    """Represents a cryptocurrency wallet.
 
-    def __init__(self, initial_balance: float = 0.0) -> None:
-        if initial_balance < 0:
-            raise ValueError("Initial balance cannot be negative.")
-        self._balance = initial_balance
+    Generates and holds a SECP256k1 private and public key pair in
+    hexadecimal format. The public key serves as the user's public address.
+    """
 
-    @property
-    def balance(self) -> float:
-        return self._balance
+    def __init__(self) -> None:
+        private_key_obj = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+        public_key_obj = private_key_obj.get_verifying_key()
 
-    def deposit(self, amount: float) -> None:
-        if amount <= 0:
-            raise ValueError("Deposit amount must be positive.")
-        self._balance += amount
-
-    def withdraw(self, amount: float) -> None:
-        if amount <= 0:
-            raise ValueError("Withdrawal amount must be positive.")
-        if amount > self._balance:
-            raise InsufficientFundsError("Insufficient funds.")
-        self._balance -= amount
+        self.private_key = private_key_obj.to_string().hex()
+        self.public_key = public_key_obj.to_string().hex()
