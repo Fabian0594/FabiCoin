@@ -13,12 +13,20 @@ class Blockchain:
 
     def __init__(self) -> None:
         self._chain: List[Block] = []
+        self._unconfirmed_transactions: List[Transaction] = []
+        self.mining_reward = 10.0
+        self.difficulty = 2
         self._create_genesis_block()
 
     @property
     def chain(self) -> List[Block]:
         """Returns the list of blocks in the chain."""
         return self._chain
+
+    @property
+    def unconfirmed_transactions(self) -> List[Transaction]:
+        """Returns the list of unconfirmed transactions (mempool)."""
+        return self._unconfirmed_transactions
 
     def _create_genesis_block(self) -> None:
         # Create genesis block with index 0 and previous_hash "0"
@@ -71,6 +79,54 @@ class Blockchain:
             raise ValueError("Bloque inválido: hash incorrecto.")
 
         self._chain.append(new_block)
+
+    def add_new_transaction(self, transaction: Transaction) -> None:
+        """Adds a new transaction to the mempool (unconfirmed transactions list)."""
+        self._unconfirmed_transactions.append(transaction)
+
+    def mine_unconfirmed_transactions(self, miner_address: str) -> bool:
+        """Mines mempool transactions, rewards miner, and clears mempool."""
+        if not self._unconfirmed_transactions:
+            return False
+
+        # Create coinbase transaction
+        coinbase_timestamp = time.time()
+        coinbase_hash = Transaction.calculate_hash(
+            sender="NETWORK",
+            recipient=miner_address,
+            amount=self.mining_reward,
+            timestamp=coinbase_timestamp,
+        )
+        coinbase_tx = Transaction(
+            sender="NETWORK",
+            recipient=miner_address,
+            amount=self.mining_reward,
+            timestamp=coinbase_timestamp,
+            id=coinbase_hash,
+        )
+
+        # Combine with unconfirmed transactions
+        transactions_to_mine = self._unconfirmed_transactions + [coinbase_tx]
+
+        # Create new block
+        new_block = Block(
+            index=len(self._chain),
+            timestamp=time.time(),
+            transactions=transactions_to_mine,
+            previous_hash=self.get_latest_block().hash,
+            nonce=0,
+            hash="",
+        )
+
+        # Mine the block (Proof of Work)
+        new_block.mine(self.difficulty)
+
+        # Add the block to the chain (which validates it)
+        self.add_block(new_block)
+
+        # Clear the mempool
+        self._unconfirmed_transactions = []
+        return True
 
     def is_chain_valid(self) -> bool:
         """Validates the immutability and integrity of the blockchain."""

@@ -205,3 +205,66 @@ def test_blockchain_immutability_tampered_previous_hash() -> None:
     )
 
     assert blockchain.is_chain_valid() is False
+
+
+def test_add_new_transaction_to_mempool() -> None:
+    blockchain = Blockchain()
+    assert blockchain.unconfirmed_transactions == []
+
+    tx = Transaction("Alice", "Bob", 15.0, time.time(), "tx_id")
+    blockchain.add_new_transaction(tx)
+
+    assert len(blockchain.unconfirmed_transactions) == 1
+    assert blockchain.unconfirmed_transactions[0] == tx
+
+
+def test_blockchain_default_configurations() -> None:
+    blockchain = Blockchain()
+    assert blockchain.mining_reward == 10.0
+    assert blockchain.difficulty == 2
+
+
+def test_mine_unconfirmed_transactions() -> None:
+    blockchain = Blockchain()
+
+    # Mining empty mempool should return False
+    assert blockchain.mine_unconfirmed_transactions("miner_bob") is False
+    assert len(blockchain.chain) == 1
+
+    # Add 2 transactions
+    now = time.time()
+    tx1_hash = Transaction.calculate_hash("Alice", "Charlie", 5.0, now)
+    tx1 = Transaction("Alice", "Charlie", 5.0, now, tx1_hash)
+
+    tx2_hash = Transaction.calculate_hash("Charlie", "David", 3.0, now + 1)
+    tx2 = Transaction("Charlie", "David", 3.0, now + 1, tx2_hash)
+
+    blockchain.add_new_transaction(tx1)
+    blockchain.add_new_transaction(tx2)
+
+    assert len(blockchain.unconfirmed_transactions) == 2
+
+    # Mine the transactions
+    success = blockchain.mine_unconfirmed_transactions("miner_bob")
+    assert success is True
+
+    # Check chain growth
+    assert len(blockchain.chain) == 2
+    new_block = blockchain.get_latest_block()
+    assert new_block.index == 1
+
+    # Check block transactions (should have 3: tx1, tx2, and coinbase)
+    assert len(new_block.transactions) == 3
+    assert new_block.transactions[0] == tx1
+    assert new_block.transactions[1] == tx2
+
+    coinbase = new_block.transactions[2]
+    assert coinbase.sender == "NETWORK"
+    assert coinbase.recipient == "miner_bob"
+    assert coinbase.amount == blockchain.mining_reward
+
+    # Check mempool is cleared
+    assert len(blockchain.unconfirmed_transactions) == 0
+
+    # Check blockchain validity
+    assert blockchain.is_chain_valid() is True
