@@ -2,6 +2,7 @@ import time
 from typing import List
 
 from domain.block import Block
+from domain.transaction import Transaction
 
 
 class Blockchain:
@@ -22,20 +23,20 @@ class Blockchain:
     def _create_genesis_block(self) -> None:
         # Create genesis block with index 0 and previous_hash "0"
         timestamp = time.time()
-        data = "Genesis Block"
+        transactions: List[Transaction] = []
         previous_hash = "0"
         nonce = 0
         genesis_hash = Block.calculate_hash(
             index=0,
             timestamp=timestamp,
-            data=data,
+            transactions=transactions,
             previous_hash=previous_hash,
             nonce=nonce,
         )
         genesis_block = Block(
             index=0,
             timestamp=timestamp,
-            data=data,
+            transactions=transactions,
             previous_hash=previous_hash,
             nonce=nonce,
             hash=genesis_hash,
@@ -47,7 +48,28 @@ class Blockchain:
         return self._chain[-1]
 
     def add_block(self, new_block: Block) -> None:
-        """Appends a new, pre-mined block to the chain."""
+        """Appends a new, pre-mined block to the chain.
+
+        Raises:
+            ValueError: If the block is invalid (hash or previous_hash is incorrect).
+        """
+        latest_block = self.get_latest_block()
+
+        # Invariant 1: previous_hash must match the latest block's hash
+        if new_block.previous_hash != latest_block.hash:
+            raise ValueError("Bloque inválido: previous_hash incorrecto.")
+
+        # Invariant 2: hash must match the recalculated hash of block state
+        recalculated_hash = Block.calculate_hash(
+            new_block.index,
+            new_block.timestamp,
+            new_block.transactions,
+            new_block.previous_hash,
+            new_block.nonce,
+        )
+        if new_block.hash != recalculated_hash:
+            raise ValueError("Bloque inválido: hash incorrecto.")
+
         self._chain.append(new_block)
 
     def is_chain_valid(self) -> bool:
@@ -60,7 +82,7 @@ class Blockchain:
         recalculated_genesis_hash = Block.calculate_hash(
             genesis.index,
             genesis.timestamp,
-            genesis.data,
+            genesis.transactions,
             genesis.previous_hash,
             genesis.nonce,
         )
@@ -76,7 +98,7 @@ class Blockchain:
             recalculated_hash = Block.calculate_hash(
                 current.index,
                 current.timestamp,
-                current.data,
+                current.transactions,
                 current.previous_hash,
                 current.nonce,
             )
