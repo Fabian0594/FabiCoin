@@ -134,3 +134,43 @@ class NodeService:
         if success:
             self.save_to_repository()
         return success
+
+    def get_node_status(self) -> dict:
+        """Returns the public key, current balance, and mempool length of the node."""
+        return {
+            "public_key": self.wallet.public_key,
+            "balance": self.blockchain.get_balance(self.wallet.public_key),
+            "unconfirmed_transactions_count": len(
+                self.blockchain.unconfirmed_transactions
+            ),
+        }
+
+    def create_local_transfer(self, recipient: str, amount: float) -> None:
+        """Creates a signed transaction from the resident wallet to a recipient.
+
+        Saves the state after successful submission to the blockchain mempool.
+
+        Raises:
+            ValueError: If the transaction is invalid or node has
+                insufficient funds.
+        """
+        import time
+
+        timestamp = time.time()
+        tx = Transaction(
+            sender=self.wallet.public_key,
+            recipient=recipient,
+            amount=amount,
+            timestamp=timestamp,
+            id="",
+            signature="",
+        )
+        tx.id = Transaction.calculate_hash(
+            sender=tx.sender,
+            recipient=tx.recipient,
+            amount=tx.amount,
+            timestamp=tx.timestamp,
+        )
+        tx.sign_transaction(self.wallet.private_key)
+        self.blockchain.add_new_transaction(tx)
+        self.save_to_repository()

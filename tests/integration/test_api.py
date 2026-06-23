@@ -223,3 +223,36 @@ def test_e2e_transaction_and_mine() -> None:
 
     # Re-initialize again to leave a clean state for subsequent tests
     presentation.api.node_service = NodeService()
+
+
+def test_get_node_status_endpoint() -> None:
+    response = client.get("/node/status")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "public_key" in data
+    assert "balance" in data
+    assert "unconfirmed_transactions_count" in data
+    assert isinstance(data["public_key"], str)
+    assert isinstance(data["balance"], float)
+    assert isinstance(data["unconfirmed_transactions_count"], int)
+
+
+@patch("presentation.api.node_service.create_local_transfer")
+def test_local_transfer_success(mock_transfer) -> None:
+    payload = {"recipient": "recipient_address", "amount": 15.0}
+    response = client.post("/node/transfer", json=payload)
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Transferencia realizada con éxito y añadida a la mempool"
+    }
+    mock_transfer.assert_called_once_with("recipient_address", 15.0)
+
+
+@patch("presentation.api.node_service.create_local_transfer")
+def test_local_transfer_invalid(mock_transfer) -> None:
+    mock_transfer.side_effect = ValueError("Fondos insuficientes")
+    payload = {"recipient": "recipient_address", "amount": 15.0}
+    response = client.post("/node/transfer", json=payload)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Fondos insuficientes"

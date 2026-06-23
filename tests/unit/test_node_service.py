@@ -205,3 +205,68 @@ def test_submit_transaction_invalid() -> None:
     with pytest.raises(ValueError):
         service.submit_transaction(tx_data)
     assert len(service.blockchain.unconfirmed_transactions) == 0
+
+
+def test_get_node_status() -> None:
+    service = NodeService()
+    status = service.get_node_status()
+
+    assert "public_key" in status
+    assert "balance" in status
+    assert "unconfirmed_transactions_count" in status
+
+    assert status["public_key"] == service.wallet.public_key
+    assert status["balance"] == 0.0
+    assert status["unconfirmed_transactions_count"] == 0
+
+
+def test_create_local_transfer_success() -> None:
+    service = NodeService()
+    # Give node resident wallet some funds
+    import time
+
+    from domain.block import Block
+    from domain.transaction import Transaction
+
+    timestamp = time.time()
+    coinbase_tx = Transaction(
+        sender="NETWORK",
+        recipient=service.wallet.public_key,
+        amount=50.0,
+        timestamp=timestamp,
+        id="coinbase_tx_id",
+    )
+    block = Block(
+        index=1,
+        timestamp=timestamp,
+        transactions=[coinbase_tx],
+        previous_hash=service.blockchain.get_latest_block().hash,
+        nonce=0,
+        hash="",
+    )
+    block.mine(service.blockchain.difficulty)
+    service.blockchain.add_block(block)
+
+    # Balance should be 50.0
+    assert service.blockchain.get_balance(service.wallet.public_key) == 50.0
+
+    # Perform a local transfer
+    recipient = "recipient_public_key"
+    service.create_local_transfer(recipient, 20.0)
+
+    # Mempool should have 1 transaction
+    assert len(service.blockchain.unconfirmed_transactions) == 1
+    tx = service.blockchain.unconfirmed_transactions[0]
+    assert tx.sender == service.wallet.public_key
+    assert tx.recipient == recipient
+    assert tx.amount == 20.0
+    assert tx.is_valid() is True
+
+
+def test_create_local_transfer_insufficient_funds() -> None:
+    service = NodeService()
+    # Balance is 0.0, so local transfer should raise ValueError
+    import pytest
+
+    with pytest.raises(ValueError):
+        service.create_local_transfer("recipient", 10.0)

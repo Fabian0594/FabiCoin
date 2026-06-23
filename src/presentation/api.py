@@ -32,6 +32,11 @@ class TransactionRequest(BaseModel):
     signature: str
 
 
+class LocalTransferRequest(BaseModel):
+    recipient: str
+    amount: float
+
+
 @app.get("/chain")
 def get_chain() -> dict:
     """GET endpoint to retrieve the complete blockchain."""
@@ -107,3 +112,23 @@ def mine() -> dict:
         "message": "Nuevo bloque minado con éxito",
         "block": block_data,
     }
+
+
+@app.get("/node/status")
+def get_node_status() -> dict:
+    """GET endpoint to retrieve the public key, balance, and mempool length
+    of the node.
+    """
+    return node_service.get_node_status()
+
+
+@app.post("/node/transfer")
+def create_local_transfer(request: LocalTransferRequest) -> dict:
+    """POST endpoint to create a local signed transfer from the node's
+    resident wallet.
+    """
+    try:
+        node_service.create_local_transfer(request.recipient, request.amount)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return {"message": "Transferencia realizada con éxito y añadida a la mempool"}

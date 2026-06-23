@@ -1,5 +1,6 @@
 import React from "react";
 import { BlockExplorer } from "./components/BlockExplorer";
+import { NodeDashboard } from "./components/NodeDashboard";
 import "./App.css";
 
 const App: React.FC = () => {
@@ -24,8 +25,9 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main BlockExplorer View */}
-      <main className="py-8">
+      {/* Main View */}
+      <main className="py-8 space-y-8">
+        <NodeDashboard />
         <BlockExplorer />
       </main>
 
