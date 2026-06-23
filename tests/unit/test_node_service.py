@@ -169,3 +169,39 @@ def test_resolve_conflicts_longer_invalid_chain(mock_get: MagicMock) -> None:
     # Resolve conflicts should return False (invalid chain)
     assert service.resolve_conflicts() is False
     assert len(service.blockchain.chain) == 1
+
+
+def test_submit_transaction_success() -> None:
+    service = NodeService()
+    # Coinbase transaction (sender="NETWORK") is valid without a signature
+    tx_data = {
+        "sender": "NETWORK",
+        "recipient": "recipient_address",
+        "amount": 10.0,
+        "timestamp": 1600000000.0,
+        "id": "tx_id",
+        "signature": "",
+    }
+    service.submit_transaction(tx_data)
+    assert len(service.blockchain.unconfirmed_transactions) == 1
+    assert (
+        service.blockchain.unconfirmed_transactions[0].recipient == "recipient_address"
+    )
+
+
+def test_submit_transaction_invalid() -> None:
+    service = NodeService()
+    # Non-coinbase transaction without signature raises ValueError
+    tx_data = {
+        "sender": "some_sender",
+        "recipient": "recipient_address",
+        "amount": 10.0,
+        "timestamp": 1600000000.0,
+        "id": "tx_id",
+        "signature": "",
+    }
+    import pytest
+
+    with pytest.raises(ValueError):
+        service.submit_transaction(tx_data)
+    assert len(service.blockchain.unconfirmed_transactions) == 0

@@ -4,6 +4,7 @@ import httpx
 
 from domain.block import Block
 from domain.blockchain import Blockchain
+from domain.transaction import Transaction
 from domain.wallet import Wallet
 
 
@@ -79,3 +80,16 @@ class NodeService:
             return True
 
         return False
+
+    def submit_transaction(self, tx_data: dict) -> None:
+        """Instantiates a Transaction from a dictionary and adds it to the mempool.
+
+        Raises:
+            ValueError: If the transaction is invalid, unsigned, or has
+                insufficient funds.
+        """
+        try:
+            tx = Transaction.from_dict(tx_data)
+            self.blockchain.add_new_transaction(tx)
+        except ValueError as e:
+            raise ValueError(str(e)) from e
