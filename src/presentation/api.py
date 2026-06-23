@@ -1,12 +1,20 @@
 from typing import List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from infrastructure.file_repository import FileBlockchainRepository
 from use_cases.node_service import NodeService
 
 app = FastAPI(title="FabiCoin Node API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción limitaremos esto a la URL de tu frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 repo = FileBlockchainRepository()
 node_service = NodeService(repository=repo)
 
