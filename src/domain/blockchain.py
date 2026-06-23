@@ -78,10 +78,41 @@ class Blockchain:
         if new_block.hash != recalculated_hash:
             raise ValueError("Bloque inválido: hash incorrecto.")
 
+        # Invariant 3: all transactions in the block must be valid
+        for tx in new_block.transactions:
+            try:
+                if not tx.is_valid():
+                    raise ValueError("Bloque inválido: firma incorrecta.")
+            except ValueError as e:
+                raise ValueError("Bloque con firmas inválidas o sin firmar.") from e
+
         self._chain.append(new_block)
 
     def add_new_transaction(self, transaction: Transaction) -> None:
-        """Adds a new transaction to the mempool (unconfirmed transactions list)."""
+        """Adds a new transaction to the mempool (unconfirmed transactions list).
+
+        Raises:
+            ValueError: If the transaction is invalid, unsigned, or if there are
+                insufficient funds.
+        """
+        try:
+            if not transaction.is_valid():
+                raise ValueError("Transacción inválida o firma incorrecta")
+        except ValueError as e:
+            raise ValueError("Transacción inválida o firma incorrecta") from e
+
+        # Double spending and overdraft protection
+        if transaction.sender != "NETWORK":
+            current_balance = self.get_balance(transaction.sender)
+            committed_in_mempool = sum(
+                tx.amount
+                for tx in self._unconfirmed_transactions
+                if tx.sender == transaction.sender
+            )
+            available_balance = current_balance - committed_in_mempool
+            if available_balance < transaction.amount:
+                raise ValueError("Fondos insuficientes")
+
         self._unconfirmed_transactions.append(transaction)
 
     def mine_unconfirmed_transactions(self, miner_address: str) -> bool:
@@ -127,6 +158,17 @@ class Blockchain:
         # Clear the mempool
         self._unconfirmed_transactions = []
         return True
+
+    def get_balance(self, address: str) -> float:
+        """Calculates the balance of a given address by scanning all transactions."""
+        balance = 0.0
+        for block in self._chain:
+            for tx in block.transactions:
+                if tx.recipient == address:
+                    balance += tx.amount
+                if tx.sender == address:
+                    balance -= tx.amount
+        return balance
 
     def is_chain_valid(self) -> bool:
         """Validates the immutability and integrity of the blockchain."""
