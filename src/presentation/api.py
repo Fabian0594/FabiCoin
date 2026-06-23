@@ -3,10 +3,12 @@ from typing import List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from infrastructure.file_repository import FileBlockchainRepository
 from use_cases.node_service import NodeService
 
 app = FastAPI(title="FabiCoin Node API")
-node_service = NodeService()
+repo = FileBlockchainRepository()
+node_service = NodeService(repository=repo)
 
 
 class RegisterNodesRequest(BaseModel):
@@ -69,9 +71,9 @@ def new_transaction(request: TransactionRequest) -> dict:
 @app.get("/mine")
 def mine() -> dict:
     """GET endpoint to trigger mining of unconfirmed transactions."""
-    miner_address = node_service.wallet.public_key
-    success = node_service.blockchain.mine_unconfirmed_transactions(miner_address)
+    success = node_service.mine()
     if not success:
+
         return {"message": "No hay transacciones para minar"}
 
     latest_block = node_service.blockchain.get_latest_block()
