@@ -60,3 +60,18 @@ class Block:
             )
 
         self.hash = current_hash
+
+    @staticmethod
+    def from_dict(data: dict) -> "Block":
+        """Reconstructs a Block object from a dictionary representation."""
+        transactions = [
+            Transaction.from_dict(tx_data) for tx_data in data.get("transactions", [])
+        ]
+        return Block(
+            index=data["index"],
+            timestamp=data["timestamp"],
+            transactions=transactions,
+            previous_hash=data["previous_hash"],
+            nonce=data["nonce"],
+            hash=data["hash"],
+        )

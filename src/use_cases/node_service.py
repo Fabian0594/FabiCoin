@@ -1,5 +1,8 @@
 from typing import Any, Dict, List
 
+import httpx
+
+from domain.block import Block
 from domain.blockchain import Blockchain
 from domain.wallet import Wallet
 
@@ -38,3 +41,41 @@ class NodeService:
             }
             chain_data.append(block_dict)
         return chain_data
+
+    def register_nodes(self, nodes: List[str]) -> None:
+        """Registers a list of peer nodes in the blockchain."""
+        for node in nodes:
+            self.blockchain.register_node(node)
+
+    def resolve_conflicts(self) -> bool:
+        """Resolves conflicts by replacing our chain with the longest valid chain."""
+        new_chain = None
+        max_length = len(self.blockchain.chain)
+
+        for node in self.blockchain.nodes:
+            try:
+                response = httpx.get(f"{node}/chain", timeout=5.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    length = data.get("length", 0)
+                    chain = data.get("chain", [])
+
+                    if length > max_length:
+                        reconstructed = [
+                            Block.from_dict(block_dict) for block_dict in chain
+                        ]
+
+                        # Validate reconstructed chain
+                        temp_chain = Blockchain()
+                        temp_chain._chain = reconstructed
+                        if temp_chain.is_chain_valid():
+                            max_length = length
+                            new_chain = reconstructed
+            except Exception:
+                continue
+
+        if new_chain is not None:
+            self.blockchain._chain = new_chain
+            return True
+
+        return False

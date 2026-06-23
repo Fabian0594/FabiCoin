@@ -69,3 +69,15 @@ class Transaction:
             return vk.verify(bytes.fromhex(self.signature), self.id.encode("utf-8"))
         except (ecdsa.BadSignatureError, ValueError, TypeError):
             return False
+
+    @staticmethod
+    def from_dict(data: dict) -> "Transaction":
+        """Reconstructs a Transaction object from a dictionary representation."""
+        return Transaction(
+            sender=data["sender"],
+            recipient=data["recipient"],
+            amount=data["amount"],
+            timestamp=data["timestamp"],
+            id=data["id"],
+            signature=data.get("signature", ""),
+        )

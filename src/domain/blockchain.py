@@ -16,6 +16,7 @@ class Blockchain:
         self._unconfirmed_transactions: List[Transaction] = []
         self.mining_reward = 10.0
         self.difficulty = 2
+        self.nodes = set()
         self._create_genesis_block()
 
     @property
@@ -169,6 +170,10 @@ class Blockchain:
                 if tx.sender == address:
                     balance -= tx.amount
         return balance
+
+    def register_node(self, address: str) -> None:
+        """Registers a new peer node by adding its address to the set."""
+        self.nodes.add(address)
 
     def is_chain_valid(self) -> bool:
         """Validates the immutability and integrity of the blockchain."""
