@@ -1,10 +1,18 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
+import presentation.api
 from presentation.api import app
+from use_cases.node_service import NodeService
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def clean_node_service():
+    presentation.api.node_service = NodeService()
 
 
 def test_get_chain() -> None:
@@ -92,15 +100,6 @@ def test_new_transaction_invalid(mock_submit) -> None:
     response = client.post("/transactions/new", json=payload)
     assert response.status_code == 400
     assert response.json()["detail"] == "Fondos insuficientes"
-
-
-@patch("presentation.api.node_service.blockchain.mine_unconfirmed_transactions")
-def test_mine_no_transactions(mock_mine) -> None:
-    mock_mine.return_value = False
-    response = client.get("/mine")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "No hay transacciones para minar"
 
 
 @patch("presentation.api.node_service.blockchain.get_latest_block")

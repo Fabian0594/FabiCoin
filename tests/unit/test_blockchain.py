@@ -318,9 +318,9 @@ def test_blockchain_default_configurations() -> None:
 def test_mine_unconfirmed_transactions() -> None:
     blockchain = Blockchain()
 
-    # Mining empty mempool should return False
-    assert blockchain.mine_unconfirmed_transactions("miner_bob") is False
-    assert len(blockchain.chain) == 1
+    # Mining empty mempool should succeed (creating a pure reward block) and return True
+    assert blockchain.mine_unconfirmed_transactions("miner_bob") is True
+    assert len(blockchain.chain) == 2
 
     # Bootstrap senders
     w1 = Wallet()
@@ -342,10 +342,10 @@ def test_mine_unconfirmed_transactions() -> None:
     assert success is True
 
     # Check chain growth
-    # Chain: genesis (1), bootstrap w1 (2), bootstrap w2 (3), mine (4)
-    assert len(blockchain.chain) == 4
+    # Chain: genesis (1), empty mine (2), bootstrap w1 (3), bootstrap w2 (4), mine (5)
+    assert len(blockchain.chain) == 5
     new_block = blockchain.get_latest_block()
-    assert new_block.index == 3
+    assert new_block.index == 4
 
     # Check block transactions (should have 3: tx1, tx2, and coinbase)
     assert len(new_block.transactions) == 3

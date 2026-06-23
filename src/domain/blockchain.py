@@ -118,9 +118,6 @@ class Blockchain:
 
     def mine_unconfirmed_transactions(self, miner_address: str) -> bool:
         """Mines mempool transactions, rewards miner, and clears mempool."""
-        if not self._unconfirmed_transactions:
-            return False
-
         # Create coinbase transaction
         coinbase_timestamp = time.time()
         coinbase_hash = Transaction.calculate_hash(
