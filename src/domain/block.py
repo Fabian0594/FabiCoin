@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
+from domain.merkle_tree import build_merkle_root
 from domain.transaction import Transaction
 
 
@@ -29,13 +30,9 @@ class Block:
     ) -> str:
         """Calculates the SHA-256 hash of a block's attributes."""
         import hashlib
-        import json
 
-        # Convert transactions to dicts for deterministic JSON dumping
-        txs_list = [tx.__dict__ for tx in transactions]
-        transactions_str = json.dumps(txs_list, sort_keys=True)
-
-        block_string = f"{index}:{timestamp}:{transactions_str}:{previous_hash}:{nonce}"
+        merkle_root = build_merkle_root(transactions)
+        block_string = f"{index}:{timestamp}:{merkle_root}:{previous_hash}:{nonce}"
         return hashlib.sha256(block_string.encode("utf-8")).hexdigest()
 
     def mine(self, difficulty: int) -> None:
