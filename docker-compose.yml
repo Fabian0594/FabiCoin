@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  node_1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - node_1_data:/app/data
+    restart: unless-stopped
+
+  node_2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    volumes:
+      - node_2_data:/app/data
+    restart: unless-stopped
+
+  node_3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    volumes:
+      - node_3_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  node_1_data:
+  node_2_data:
+  node_3_data:
